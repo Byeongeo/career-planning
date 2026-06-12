@@ -152,7 +152,13 @@ export default function CareerPage() {
       setSelectedIsbn(book.isbn);
       showMessage(payload.message || "도서 선택이 저장되었습니다.", "ok");
     } catch (error) {
-      showMessage(error instanceof Error ? error.message : "도서 선택 저장 중 문제가 생겼습니다.", "error");
+      const detail = error instanceof Error ? error.message : "도서 선택 저장 중 문제가 생겼습니다.";
+      showMessage(
+        detail.includes("GOOGLE_SHEET_WEBHOOK_URL")
+          ? "구글시트 웹훅 연결이 아직 설정되지 않았습니다. Vercel 환경 변수 GOOGLE_SHEET_WEBHOOK_URL과 APP_SECRET을 확인하세요."
+          : detail,
+        "error"
+      );
     } finally {
       setBusy("");
     }
@@ -265,7 +271,13 @@ export default function CareerPage() {
               <div className="career-book-grid">
                 {result.books.map((book) => (
                   <article className={`career-book-card ${selectedIsbn === book.isbn ? "selected" : ""}`} key={book.isbn || book.title}>
-                    {book.cover ? <img src={book.cover} alt="" /> : null}
+                    {book.cover ? (
+                      <img
+                        src={book.cover}
+                        alt=""
+                        onError={(event) => { event.currentTarget.style.display = "none"; }}
+                      />
+                    ) : null}
                     <div>
                       <h3>{book.title}</h3>
                       <p className="book-meta">{[book.author, book.publisher, book.pubYear].filter(Boolean).join(" · ")}</p>

@@ -330,7 +330,7 @@ function normalizeAladinBook(item: any): BookCandidate {
     priceStandard: Number(item.priceStandard || 0),
     priceSales: Number(item.priceSales || 0),
     isbn,
-    cover: clean(item.cover),
+    cover: normalizeCoverUrl(item.cover),
     aladinLink: clean(item.link || "https://www.aladin.co.kr"),
     yes24Link: `https://www.yes24.com/Product/Search?domain=BOOK&query=${encodeURIComponent(isbn || item.title || "")}`,
     description: clean(item.description),
@@ -412,7 +412,55 @@ async function requestBookSelection(student: StudentInfo, analysis: CareerAnalys
   });
 
   const selected = await requestOpenAiJson(body);
-  return Array.isArray(selected.books) ? selected.books.slice(0, finalBookCount) : [];
+  const selectedBooks = Array.isArray(selected.books) ? selected.books.slice(0, finalBookCount) : [];
+  return selectedBooks.map((book: any) => hydrateSelectedBook(book, candidates));
+}
+
+function hydrateSelectedBook(book: any, candidates: BookCandidate[]) {
+  const match = findCandidateForSelection(book, candidates);
+  const isbn = clean(match?.isbn || book.isbn);
+  const title = clean(match?.title || book.title);
+  return {
+    title,
+    author: clean(match?.author || book.author),
+    publisher: clean(match?.publisher || book.publisher),
+    pubYear: clean(match?.pubYear || book.pubYear),
+    priceStandard: Number(match?.priceStandard || book.priceStandard || 0),
+    priceSales: Number(match?.priceSales || book.priceSales || 0),
+    isbn,
+    cover: normalizeCoverUrl(match?.cover || book.cover),
+    aladinLink: clean(match?.aladinLink || book.aladinLink || "https://www.aladin.co.kr"),
+    yes24Link: clean(match?.yes24Link || book.yes24Link || `https://www.yes24.com/Product/Search?domain=BOOK&query=${encodeURIComponent(isbn || title)}`),
+    reason: clean(book.reason)
+  };
+}
+
+function findCandidateForSelection(book: any, candidates: BookCandidate[]) {
+  const isbn = clean(book?.isbn);
+  if (isbn) {
+    const isbnMatch = candidates.find((candidate) => candidate.isbn === isbn);
+    if (isbnMatch) return isbnMatch;
+  }
+
+  const titleKey = normalizeBookKey(book?.title);
+  if (!titleKey) return undefined;
+  return candidates.find((candidate) => {
+    const candidateKey = normalizeBookKey(candidate.title);
+    return candidateKey === titleKey || candidateKey.includes(titleKey) || titleKey.includes(candidateKey);
+  });
+}
+
+function normalizeBookKey(value: unknown) {
+  return clean(value)
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .replace(/[^\p{L}\p{N}]+/gu, "");
+}
+
+function normalizeCoverUrl(value: unknown) {
+  const url = clean(value);
+  if (!url) return "";
+  return url.replace(/^http:\/\//i, "https://");
 }
 
 function buildResponsesBody(systemPrompt: string, userContent: any[], schemaName: string, schema: any) {
