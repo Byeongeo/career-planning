@@ -1,4 +1,4 @@
-﻿# Career Planning
+# Career Planning
 
 진로 검사 PDF를 업로드하면 Vercel의 Next.js API가 OpenAI로 분석하고, 알라딘 API 후보 도서 중 학생에게 맞는 책을 추천하는 웹앱입니다.
 

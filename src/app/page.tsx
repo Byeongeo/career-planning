@@ -1,3 +1,3 @@
-﻿import CareerPage from "./career/page";
+import CareerPage from "./career/page";
 
 export default CareerPage;
